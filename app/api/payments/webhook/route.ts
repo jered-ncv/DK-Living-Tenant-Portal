@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-export const dynamic = 'force-dynamic'\nexport const runtime = 'nodejs'
 import Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-01-28.clover',

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-export const dynamic = 'force-dynamic'\nexport const runtime = 'nodejs'
 import { createClient } from '@/lib/supabase/server'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 // TODO: Implement actual QuickBooks API integration to record payments
 // This endpoint will be called after a successful Stripe payment
