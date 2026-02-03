@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'\nexport const runtime = 'nodejs'
 import { createClient } from '@/lib/supabase/server'
 
 // TODO: Implement actual QuickBooks OAuth and API integration
