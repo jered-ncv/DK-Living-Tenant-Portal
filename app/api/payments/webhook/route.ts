@@ -6,14 +6,17 @@ const getSupabaseClient = async () => { const { createClient } = await import('@
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
   apiVersion: '2026-01-28.clover',
 })
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+const getWebhookSecret = () => process.env.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder'
 
 export async function POST(request: NextRequest) {
   try {
+    const stripe = getStripe()
+    const webhookSecret = getWebhookSecret()
+    
     const body = await request.text()
     const signature = request.headers.get('stripe-signature')!
 

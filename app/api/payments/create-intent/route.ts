@@ -10,12 +10,13 @@ const getSupabaseClient = async () => {
   return createClient()
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
+const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
   apiVersion: '2026-01-28.clover',
 })
 
 export async function POST(request: NextRequest) {
   try {
+    const stripe = getStripe()
     const supabase = await getSupabaseClient()
     
     // Get current user
