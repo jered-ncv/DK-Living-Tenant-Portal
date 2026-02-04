@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { createClient } from '@/lib/supabase/server'
+
+const getSupabaseClient = async () => { const { createClient } = await import('@/lib/supabase/server'); return createClient() }
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
     }
 
-    const supabase = await createClient()
+    const supabase = await getSupabaseClient()
 
     // Handle the event
     switch (event.type) {
