@@ -35,17 +35,19 @@ export default async function FinancialsPage() {
   const netOperatingIncomeDec = totalIncomeDec
   const netOperatingIncomeJan = totalIncomeJan
   const netOperatingIncomeFeb = totalIncomeFeb
+  const netOperatingIncomeTotal = netOperatingIncomeDec + netOperatingIncomeJan + netOperatingIncomeFeb
 
   const netIncomeDec = totalIncomeDec
   const netIncomeJan = totalIncomeJan
   const netIncomeFeb = totalIncomeFeb
+  const netIncomeTotal = netIncomeDec + netIncomeJan + netIncomeFeb
 
   const totalIncomeDecStr = totalIncomeDec.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
   const totalIncomeJanStr = totalIncomeJan.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
   const totalIncomeFebStr = totalIncomeFeb.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
   const totalIncomeTotal = (totalIncomeDec + totalIncomeJan + totalIncomeFeb).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 
-  const getCurrencyString = (num) => num.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+  const getCurrencyString = (num: number) => num.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 
   return (
     <div className="min-h-screen bg-gray-50">

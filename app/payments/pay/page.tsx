@@ -1,24 +1,82 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { loadStripe } from '@stripe/stripe-js'
+import { Elements } from '@stripe/react-stripe-js'
+import PaymentForm from '@/components/payments/PaymentForm'
+
+// Initialize Stripe
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')
 
 export default function MakePaymentPage() {
   const router = useRouter()
   const [amount, setAmount] = useState<'balance' | 'other'>('balance')
   const [customAmount, setCustomAmount] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('credit')
-  const [saveCard, setSaveCard] = useState(true)
+  const [clientSecret, setClientSecret] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [currentBalance, setCurrentBalance] = useState(0)
+  const [unitId, setUnitId] = useState<string | null>(null)
   
-  const currentBalance = 0.00
-  const today = new Date().toISOString().split('T')[0]
+  // Fetch current balance
+  useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        const response = await fetch('/api/qbo/balance')
+        if (response.ok) {
+          const data = await response.json()
+          setCurrentBalance(data.balance || 0)
+          setUnitId(data.unitId)
+        }
+      } catch (err) {
+        console.error('Error fetching balance:', err)
+      }
+    }
+    fetchBalance()
+  }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    // Payment processing will be handled by Stripe integration
-    console.log('Processing payment...')
+  const handleContinue = async () => {
+    setError(null)
+    setLoading(true)
+
+    try {
+      const paymentAmount = amount === 'balance' 
+        ? currentBalance 
+        : parseFloat(customAmount)
+
+      if (isNaN(paymentAmount) || paymentAmount <= 0) {
+        setError('Please enter a valid amount')
+        setLoading(false)
+        return
+      }
+
+      // Create payment intent
+      const response = await fetch('/api/payments/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: paymentAmount,
+          unitId: unitId,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment intent')
+      }
+
+      const data = await response.json()
+      setClientSecret(data.clientSecret)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setLoading(false)
+    }
   }
+
+  const today = new Date().toISOString().split('T')[0]
+  const selectedAmount = amount === 'balance' ? currentBalance : parseFloat(customAmount || '0')
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
@@ -81,224 +139,96 @@ export default function MakePaymentPage() {
       {/* Main Content */}
       <main className="flex-1 overflow-auto bg-white">
         <div className="max-w-3xl mx-auto p-8">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Select Amount */}
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Select an amount</h2>
-              
-              <div className="space-y-3">
-                <label className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="amount"
-                      value="balance"
-                      checked={amount === 'balance'}
-                      onChange={(e) => setAmount(e.target.value as 'balance')}
-                      className="w-4 h-4 text-green-600 focus:ring-green-500"
-                    />
-                    <span className="text-gray-700">Current balance (as of {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})</span>
-                  </div>
-                  <span className="text-gray-900 font-semibold">${currentBalance.toFixed(2)}</span>
-                </label>
-
-                <label className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="amount"
-                      value="other"
-                      checked={amount === 'other'}
-                      onChange={(e) => setAmount(e.target.value as 'other')}
-                      className="w-4 h-4 text-green-600 focus:ring-green-500"
-                    />
-                    <span className="text-gray-700">Other amount</span>
-                  </div>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={customAmount}
-                    onChange={(e) => {
-                      setCustomAmount(e.target.value)
-                      setAmount('other')
-                    }}
-                    placeholder="$0.00"
-                    className="w-32 text-right px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                </label>
-              </div>
-            </div>
-
-            {/* Payment Method */}
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Select a payment method</h2>
-              
-              <select 
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 mb-2"
-              >
-                <option value="credit">Credit card</option>
-                <option value="bank">Bank account</option>
-              </select>
-              
-              <p className="text-sm text-gray-500 mb-6">(2.99% handling fee)</p>
-
-              {/* Card Details */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Name on card</label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Card number</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="•••• •••• •••• ••••"
-                      className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                      required
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
-                      <span className="text-xs text-gray-400 font-semibold bg-gray-100 px-1 py-0.5 rounded">VISA</span>
-                      <span className="text-xs text-gray-400 font-semibold bg-gray-100 px-1 py-0.5 rounded">MC</span>
-                      <span className="text-xs text-gray-400 font-semibold bg-gray-100 px-1 py-0.5 rounded">DISC</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Expiration date</label>
-                    <input
-                      type="text"
-                      placeholder="MM/YY"
-                      className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Security code
-                      <span className="ml-1 text-gray-400 cursor-help" title="3-4 digit code on back of card">?</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="CVV"
-                      className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Billing Address */}
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Billing address</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                  <select className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                    <option>United States</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Address line 1</label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Address line 2</label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
-                    <select className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
-                      <option value="">Select...</option>
-                      <option value="FL">Florida</option>
-                      <option value="GA">Georgia</option>
-                      {/* Add more states as needed */}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Postal code</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={saveCard}
-                    onChange={(e) => setSaveCard(e.target.checked)}
-                    className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">Save my credit card for next time</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Payment Date */}
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Select a date</h2>
-              
+          {!clientSecret ? (
+            // Step 1: Select amount
+            <div className="space-y-8">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Payment start date</label>
-                <input
-                  type="date"
-                  defaultValue={today}
-                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  required
-                />
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Select an amount</h2>
+                
+                <div className="space-y-3">
+                  <label className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="amount"
+                        value="balance"
+                        checked={amount === 'balance'}
+                        onChange={(e) => setAmount(e.target.value as 'balance')}
+                        className="w-4 h-4 text-green-600 focus:ring-green-500"
+                      />
+                      <span className="text-gray-700">Current balance (as of {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})</span>
+                    </div>
+                    <span className="text-gray-900 font-semibold">${currentBalance.toFixed(2)}</span>
+                  </label>
+
+                  <label className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="amount"
+                        value="other"
+                        checked={amount === 'other'}
+                        onChange={(e) => setAmount(e.target.value as 'other')}
+                        className="w-4 h-4 text-green-600 focus:ring-green-500"
+                      />
+                      <span className="text-gray-700">Other amount</span>
+                    </div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={customAmount}
+                      onChange={(e) => {
+                        setCustomAmount(e.target.value)
+                        setAmount('other')
+                      }}
+                      placeholder="$0.00"
+                      className="w-32 text-right px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-800">{error}</p>
+                </div>
+              )}
+
+              <div className="flex gap-4 pt-4">
+                <button
+                  onClick={handleContinue}
+                  disabled={loading || selectedAmount <= 0}
+                  className="flex-1 py-3 px-6 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Loading...' : `Continue with $${selectedAmount.toFixed(2)}`}
+                </button>
+                <Link
+                  href="/payments"
+                  className="flex-1 py-3 px-6 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors font-medium text-center"
+                >
+                  Cancel
+                </Link>
               </div>
             </div>
-
-            {/* Submit Buttons */}
-            <div className="flex gap-4 pt-4">
-              <button
-                type="submit"
-                className="flex-1 py-3 px-6 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors font-medium"
-              >
-                Submit payment
-              </button>
-              <Link
-                href="/payments"
-                className="flex-1 py-3 px-6 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors font-medium text-center"
-              >
-                Cancel
-              </Link>
+          ) : (
+            // Step 2: Payment form with Stripe Elements
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Payment details</h2>
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">Payment amount:</span>
+                  <span className="text-2xl font-bold text-gray-900">${selectedAmount.toFixed(2)}</span>
+                </div>
+              </div>
+              <Elements stripe={stripePromise} options={{ clientSecret }}>
+                <PaymentForm 
+                  clientSecret={clientSecret} 
+                  amount={selectedAmount}
+                />
+              </Elements>
             </div>
-          </form>
+          )}
         </div>
       </main>
     </div>

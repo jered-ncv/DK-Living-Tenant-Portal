@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Get user's unit
     const { data: unit, error } = await supabase
       .from('units')
-      .select('monthly_rent, qbo_customer_id')
+      .select('id, monthly_rent, qbo_customer_id')
       .eq('tenant_id', user.id)
       .single()
 
@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       balance: balance,
+      unitId: unit.id,
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       source: 'mock', // Will change to 'qbo' when implemented
     })
