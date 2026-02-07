@@ -42,14 +42,16 @@ export default async function PMDashboardPage() {
     )
   }
 
-  // Fetch dashboard data
+  // Fetch dashboard data (active properties only)
   const { data: properties } = await supabase
     .from('properties')
     .select('*, units(*)')
+    .eq('is_active', true)
 
   const { data: units } = await supabase
     .from('units')
-    .select('*')
+    .select('*, properties!inner(is_active)')
+    .eq('properties.is_active', true)
 
   const { data: maintenanceRequests } = await supabase
     .from('maintenance_requests')

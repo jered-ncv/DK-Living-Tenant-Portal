@@ -60,17 +60,19 @@ export async function POST(request: NextRequest) {
 
     if (ASANA_PAT && ASANA_WORKSPACE_ID && ASANA_PROJECT_ID) {
       try {
-        // Get unit and property info for task context
+        // Get unit and property info for task context (active properties only)
         const { data: unit } = await supabase
           .from('units')
           .select(`
             unit_number,
-            properties (
+            properties!inner (
               name,
-              address
+              address,
+              is_active
             )
           `)
           .eq('id', unitId)
+          .eq('properties.is_active', true)
           .single()
 
         // Get tenant info

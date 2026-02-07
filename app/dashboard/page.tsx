@@ -23,17 +23,19 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .single()
 
-  // Fetch user's unit
+  // Fetch user's unit (from active properties only)
   const { data: unit } = await supabase
     .from('units')
     .select(`
       *,
-      properties (
+      properties!inner (
         name,
-        address
+        address,
+        is_active
       )
     `)
     .eq('tenant_id', user.id)
+    .eq('properties.is_active', true)
     .single()
 
   // Fetch open maintenance requests

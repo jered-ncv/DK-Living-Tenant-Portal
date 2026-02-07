@@ -21,11 +21,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user's unit
+    // Get user's unit (from active properties only)
     const { data: unit, error } = await supabase
       .from('units')
-      .select('id, monthly_rent, qbo_customer_id')
+      .select('id, monthly_rent, qbo_customer_id, properties!inner(is_active)')
       .eq('tenant_id', user.id)
+      .eq('properties.is_active', true)
       .single()
 
     if (error || !unit) {

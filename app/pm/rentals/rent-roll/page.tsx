@@ -14,14 +14,15 @@ export default async function RentRollPage() {
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
   if (!profile || !['pm', 'admin'].includes(profile.role || '')) redirect('/dashboard')
 
-  // Fetch units with tenant info
+  // Fetch units with tenant info (active properties only for PM dashboard)
   const { data: units } = await supabase
     .from('units')
     .select(`
       *,
-      properties (name, address),
+      properties!inner (name, address, is_active),
       profiles (full_name, email)
     `)
+    .eq('properties.is_active', true)
     .order('unit_number')
 
   return (

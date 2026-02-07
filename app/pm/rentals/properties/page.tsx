@@ -27,7 +27,7 @@ export default async function PropertiesPage() {
     redirect('/dashboard')
   }
 
-  // Fetch properties
+  // Fetch properties (show all for PM, they can filter in UI)
   const { data: properties } = await supabase
     .from('properties')
     .select('*')
