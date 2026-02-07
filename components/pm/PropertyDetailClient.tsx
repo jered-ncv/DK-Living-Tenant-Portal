@@ -50,10 +50,35 @@ export default function PropertyDetailClient({
 }: PropertyDetailClientProps) {
   const [activeTab, setActiveTab] = useState<'summary' | 'units' | 'tasks'>('summary')
   const [showAddUnitModal, setShowAddUnitModal] = useState(false)
+  const [showInactivateModal, setShowInactivateModal] = useState(false)
+  const [isInactivating, setIsInactivating] = useState(false)
 
   const occupiedUnits = units.filter(u => u.tenant_id).length
   const vacantUnits = units.length - occupiedUnits
   const totalMonthlyRent = units.reduce((sum, u) => sum + (u.monthly_rent || 0), 0)
+
+  const handleInactivateProperty = async () => {
+    setIsInactivating(true)
+    try {
+      // TODO: Implement actual API call to inactivate property
+      const response = await fetch(`/api/pm/properties/${property.id}/inactivate`, {
+        method: 'POST',
+      })
+      
+      if (response.ok) {
+        // Success - reload or redirect
+        window.location.reload()
+      } else {
+        alert('Failed to inactivate property')
+      }
+    } catch (error) {
+      console.error('Error inactivating property:', error)
+      alert('An error occurred while inactivating the property')
+    } finally {
+      setIsInactivating(false)
+      setShowInactivateModal(false)
+    }
+  }
 
   return (
     <>
@@ -69,6 +94,12 @@ export default function PropertyDetailClient({
                 </p>
               </div>
               <div className="flex gap-2">
+                <button
+                  onClick={() => setShowInactivateModal(true)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50"
+                >
+                  Inactivate property
+                </button>
                 <button
                   onClick={() => setShowAddUnitModal(true)}
                   className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -307,6 +338,39 @@ export default function PropertyDetailClient({
         properties={[{ id: property.id, name: property.name }]}
         propertyId={property.id}
       />
+
+      {/* Inactivate Property Modal */}
+      {showInactivateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Inactivate Property
+              </h2>
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to inactivate <strong>{property.name}</strong>? 
+                This property will no longer appear in active property lists, but you can reactivate it at any time.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowInactivateModal(false)}
+                  disabled={isInactivating}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleInactivateProperty}
+                  disabled={isInactivating}
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                >
+                  {isInactivating ? 'Inactivating...' : 'Inactivate Property'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
