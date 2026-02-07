@@ -7,8 +7,6 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  // Skip static page generation during build
-  output: 'standalone',
 };
 
 export default nextConfig;
