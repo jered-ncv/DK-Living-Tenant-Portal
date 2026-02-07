@@ -342,29 +342,55 @@ export default function PropertyDetailClient({
       {/* Inactivate Property Modal */}
       {showInactivateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
             <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Inactivate Property
-              </h2>
-              <p className="text-gray-700 mb-6">
-                Are you sure you want to inactivate <strong>{property.name}</strong>? 
-                This property will no longer appear in active property lists, but you can reactivate it at any time.
-              </p>
-              <div className="flex justify-end gap-3">
+              <div className="flex justify-between items-start mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Would you like to inactivate or delete?
+                </h2>
                 <button
                   onClick={() => setShowInactivateModal(false)}
-                  disabled={isInactivating}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 disabled:opacity-50"
+                  className="text-gray-400 hover:text-gray-600"
                 >
-                  Cancel
+                  ✕
                 </button>
+              </div>
+              
+              <div className="space-y-4 mb-6">
+                <p className="text-gray-700">
+                  Delete will remove property information permanently.
+                </p>
+                <p className="text-gray-700">
+                  Inactivating the property will remove property information from your account but it can be reactivated at anytime.
+                </p>
+              </div>
+
+              <div className="flex justify-start gap-3">
                 <button
                   onClick={handleInactivateProperty}
                   disabled={isInactivating}
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                  className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
                 >
-                  {isInactivating ? 'Inactivating...' : 'Inactivate Property'}
+                  {isInactivating ? 'Inactivating...' : 'Inactivate property'}
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm('Are you sure you want to permanently delete this property? This action cannot be undone.')) {
+                      // TODO: Implement delete functionality
+                      alert('Delete functionality coming soon')
+                    }
+                  }}
+                  disabled={isInactivating}
+                  className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => setShowInactivateModal(false)}
+                  disabled={isInactivating}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
                 </button>
               </div>
             </div>
