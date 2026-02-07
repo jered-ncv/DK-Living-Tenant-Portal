@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
 import PropertyDetailClient from '@/components/pm/PropertyDetailClient'
 
 export const dynamic = 'force-dynamic'
@@ -32,7 +33,7 @@ export default async function PropertyDetailPage({ params }: PageProps) {
   }
 
   // Fetch property with units
-  const { data: property } = await supabase
+  const { data: property, error: propertyError } = await supabase
     .from('properties')
     .select(`
       *,
@@ -49,8 +50,23 @@ export default async function PropertyDetailPage({ params }: PageProps) {
     .eq('id', params.id)
     .single()
 
-  if (!property) {
-    redirect('/pm/rentals/properties')
+  // Debug: show error if property not found
+  if (!property || propertyError) {
+    return (
+      <div className="p-8">
+        <h1 className="text-2xl font-bold mb-4">Property Not Found</h1>
+        <pre className="bg-gray-100 p-4 rounded overflow-auto">
+          {JSON.stringify({ 
+            propertyId: params.id,
+            property,
+            error: propertyError 
+          }, null, 2)}
+        </pre>
+        <Link href="/pm/rentals/properties" className="text-blue-600 hover:underline mt-4 inline-block">
+          ← Back to Properties
+        </Link>
+      </div>
+    )
   }
 
   // Fetch maintenance requests for this property
