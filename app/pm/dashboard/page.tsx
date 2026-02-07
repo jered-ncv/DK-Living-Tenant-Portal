@@ -17,14 +17,29 @@ export default async function PMDashboardPage() {
   }
 
   // Check if user has PM/admin role
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
 
+  // TEMPORARY DEBUG: Comment out redirect to see what's happening
   if (!profile || !['pm', 'admin'].includes(profile.role || '')) {
-    redirect('/dashboard')
+    return (
+      <div className="p-8">
+        <h1 className="text-2xl font-bold mb-4">Debug: Access Denied</h1>
+        <pre className="bg-gray-100 p-4 rounded overflow-auto">
+          {JSON.stringify({ 
+            userId: user.id, 
+            profile, 
+            profileError,
+            hasRole: profile?.role,
+            isAdmin: profile?.role === 'admin',
+            isPM: profile?.role === 'pm'
+          }, null, 2)}
+        </pre>
+      </div>
+    )
   }
 
   // Fetch dashboard data
