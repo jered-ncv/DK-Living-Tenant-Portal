@@ -7,10 +7,11 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 interface PageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default async function PropertyDetailPage({ params }: PageProps) {
+  const { id } = await params
   const supabase = await createClient()
   
   const {
@@ -47,7 +48,7 @@ export default async function PropertyDetailPage({ params }: PageProps) {
         )
       )
     `)
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   // Debug: show error if property not found
@@ -57,7 +58,7 @@ export default async function PropertyDetailPage({ params }: PageProps) {
         <h1 className="text-2xl font-bold mb-4">Property Not Found</h1>
         <pre className="bg-gray-100 p-4 rounded overflow-auto">
           {JSON.stringify({ 
-            propertyId: params.id,
+            propertyId: id,
             property,
             error: propertyError 
           }, null, 2)}
@@ -78,7 +79,7 @@ export default async function PropertyDetailPage({ params }: PageProps) {
         property_id
       )
     `)
-    .eq('units.property_id', params.id)
+    .eq('units.property_id', id)
     .order('created_at', { ascending: false })
 
   return (
