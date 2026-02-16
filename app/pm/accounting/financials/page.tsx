@@ -35,11 +35,11 @@ export default async function FinancialsPage() {
   const netOperatingIncomeDec = totalIncomeDec
   const netOperatingIncomeJan = totalIncomeJan
   const netOperatingIncomeFeb = totalIncomeFeb
+  const netOperatingIncomeTotal = netOperatingIncomeDec + netOperatingIncomeJan + netOperatingIncomeFeb
 
   const netIncomeDec = totalIncomeDec
   const netIncomeJan = totalIncomeJan
   const netIncomeFeb = totalIncomeFeb
-  const netOperatingIncomeTotal = netOperatingIncomeDec + netOperatingIncomeJan + netOperatingIncomeFeb
   const netIncomeTotal = netIncomeDec + netIncomeJan + netIncomeFeb
 
   const totalIncomeDecStr = totalIncomeDec.toLocaleString('en-US', { style: 'currency', currency: 'USD' })

@@ -14,14 +14,15 @@ export default async function LeaseManagementPage() {
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
   if (!profile || !['pm', 'admin'].includes(profile.role || '')) redirect('/dashboard')
 
-  // Fetch units with lease data
+  // Fetch units with lease data (active properties only)
   const { data: units } = await supabase
     .from('units')
     .select(`
       *,
-      properties (name),
+      properties!inner (name, is_active),
       profiles (full_name)
     `)
+    .eq('properties.is_active', true)
     .not('lease_end_date', 'is', null)
     .order('lease_end_date')
 

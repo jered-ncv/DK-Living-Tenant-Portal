@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import PMLayout from '@/components/pm/PMLayout'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -52,34 +53,35 @@ export default async function OutstandingBalancesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <PMLayout profileName={profile.full_name || 'Manager'}>
       {/* Header */}
-      <header className="bg-white border-b px-8 py-4">
-        <h1 className="text-2xl font-semibold text-gray-900">Outstanding lease balances</h1>
+      <header className="bg-white border-b px-4 md:px-8 py-4">
+        <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Outstanding lease balances</h1>
       </header>
 
       {/* Filters */}
-      <div className="bg-white border-b px-8 py-4">
-        <div className="flex gap-4">
-          <select className="px-4 py-2 border rounded">
+      <div className="bg-white border-b px-4 md:px-8 py-4">
+        <div className="flex flex-col md:flex-row gap-3 mb-4">
+          <select className="px-4 py-2 border rounded text-sm">
             <option>2061 Forbes St</option>
           </select>
-          <select className="px-4 py-2 border rounded">
+          <select className="px-4 py-2 border rounded text-sm">
             <option>(2) Future, Active</option>
           </select>
-          <button className="px-4 py-2 border text-gray-700 rounded hover:bg-gray-50">
+          <button className="px-4 py-2 border text-gray-700 rounded hover:bg-gray-50 text-sm">
             Add filter option ▼
           </button>
         </div>
-        <div className="flex justify-between mt-4">
-          <div className="text-sm text-gray-600">{mockBalances.length} matches</div>
-          <button className="text-sm text-blue-600 hover:underline">📤 Export</button>
+        <div className="flex justify-between items-center">
+          <div className="text-xs md:text-sm text-gray-600">{mockBalances.length} matches</div>
+          <button className="text-xs md:text-sm text-blue-600 hover:underline">📤 Export</button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="p-8">
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Content */}
+      <div className="p-4 md:p-8">
+        {/* Desktop Table View */}
+        <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
           <table className="min-w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
@@ -147,14 +149,89 @@ export default async function OutstandingBalancesPage() {
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* Back Link */}
-      <div className="px-8 pb-8">
-        <Link href="/pm/dashboard" className="text-sm text-blue-600 hover:underline">
-          ← Back to Dashboard
-        </Link>
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-4">
+          {mockBalances.map((item) => (
+            <div key={item.id} className="bg-white rounded-lg shadow p-4">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1">
+                  <Link href="#" className="text-blue-600 hover:underline font-medium block mb-1">
+                    {item.unit}
+                  </Link>
+                  <div className="text-sm text-gray-900">{item.tenant}</div>
+                  <div className="text-xs text-gray-500">{item.accountNumber}</div>
+                </div>
+                <button className="text-gray-400 hover:text-gray-600 ml-2">⋯</button>
+              </div>
+
+              <div className="space-y-2 text-sm border-t pt-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Past Due Email:</span>
+                  <span className="text-gray-900 text-xs">{item.pastDueEmail}</span>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-gray-500">0-30 days:</span>
+                  <span className="text-gray-900 font-medium">${item.balance_0_30.toFixed(2)}</span>
+                </div>
+                
+                {item.balance_31_60 > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">31-60 days:</span>
+                    <span className="text-gray-900 font-medium">${item.balance_31_60.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                {item.balance_61_90 > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">61-90 days:</span>
+                    <span className="text-gray-900 font-medium">${item.balance_61_90.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                {item.balance_90_plus > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">90+ days:</span>
+                    <span className="text-gray-900 font-medium">${item.balance_90_plus.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between border-t pt-2 mt-2">
+                  <span className="text-gray-900 font-semibold">Total Balance:</span>
+                  <span className="text-gray-900 font-bold text-base">${item.total.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Mobile Totals Card */}
+          <div className="bg-gray-50 rounded-lg shadow p-4 border-2 border-gray-300">
+            <h3 className="font-semibold text-gray-900 mb-3">Total Outstanding</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">0-30 days:</span>
+                <span className="text-gray-900 font-medium">${totals.balance_0_30.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">31-60 days:</span>
+                <span className="text-gray-900 font-medium">${totals.balance_31_60.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between border-t pt-2 mt-2">
+                <span className="text-gray-900 font-bold">Grand Total:</span>
+                <span className="text-gray-900 font-bold text-lg">${totals.total.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Back Link */}
+        <div className="mt-6">
+          <Link href="/pm/dashboard" className="text-xs md:text-sm text-blue-600 hover:underline">
+            ← Back to Dashboard
+          </Link>
+        </div>
       </div>
-    </div>
+    </PMLayout>
   )
 }
