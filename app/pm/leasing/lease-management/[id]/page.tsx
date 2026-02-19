@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import LeaseTimeline from '@/components/pm/LeaseTimeline'
+import LeaseQuickActionsClient from '@/components/pm/LeaseQuickActionsClient'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -261,33 +262,11 @@ export default async function LeaseDetailPage({ params }: Props) {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="space-y-2">
-                <button className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-                  Edit Lease
-                </button>
-                <button className="w-full px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm">
-                  View Unit Details
-                </button>
-                <Link 
-                  href={`/pm/rentals/rent-roll-v2`}
-                  className="block w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm text-center"
-                >
-                  View Rent Roll
-                </Link>
-                {lease.status === 'active' && (
-                  <>
-                    <button className="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm">
-                      Send Renewal Offer
-                    </button>
-                    <button className="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm">
-                      Log Notice
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
+            <LeaseQuickActionsClient
+              leaseId={lease.id}
+              leaseStatus={lease.status}
+              monthlyRent={lease.monthly_rent}
+            />
 
             {/* Move-In/Out Dates */}
             {(lease.move_in_date || lease.move_out_date) && (
