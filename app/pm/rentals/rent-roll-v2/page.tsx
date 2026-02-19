@@ -78,6 +78,26 @@ export default function RentRollV2Page() {
     return null
   }
 
+  const handleExport = async () => {
+    try {
+      const response = await fetch('/api/leases/export')
+      if (!response.ok) throw new Error('Export failed')
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `rent-roll-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to export:', error)
+      alert('Failed to export rent roll')
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -156,7 +176,10 @@ export default function RentRollV2Page() {
           <div className="text-sm text-gray-600">
             {filteredData.length} {filteredData.length === 1 ? 'match' : 'matches'}
           </div>
-          <button className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
+          <button 
+            onClick={handleExport}
+            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+          >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
