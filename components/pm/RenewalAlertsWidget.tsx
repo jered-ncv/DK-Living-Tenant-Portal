@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
 type RenewalStage = 'critical' | 'offer_due' | 'review_due' | 'no_action'
@@ -26,7 +26,7 @@ export default function RenewalAlertsWidget() {
   const [error, setError] = useState<string | null>(null)
   const [actioningLeaseId, setActioningLeaseId] = useState<string | null>(null)
 
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   const fetchAlerts = async () => {
     try {

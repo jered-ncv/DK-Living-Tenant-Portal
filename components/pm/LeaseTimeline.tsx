@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 
 interface LeaseAction {
   id: string
@@ -64,7 +64,7 @@ export default function LeaseTimeline({ leaseId }: LeaseTimelineProps) {
   const [noteText, setNoteText] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   const fetchActions = async () => {
     setLoading(true)
