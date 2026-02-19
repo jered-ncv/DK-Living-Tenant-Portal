@@ -81,6 +81,7 @@ export default function PMLayout({ children, profileName }: PMLayoutProps) {
           bg-slate-800 text-white flex flex-col
           transition-transform duration-300 ease-in-out
           ${sidebarOpen ? 'mt-16 md:mt-0' : ''}
+          overflow-visible
         `}
       >
         {/* Logo - Desktop only */}
@@ -126,7 +127,7 @@ export default function PMLayout({ children, profileName }: PMLayoutProps) {
               {/* Hover dropdown submenu */}
               {item.subItems && hoveredItem === item.name && (
                 <div 
-                  className="hidden md:block absolute left-full top-0 ml-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
+                  className="absolute left-full top-0 ml-1 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[100]"
                   onMouseEnter={() => setHoveredItem(item.name)}
                   onMouseLeave={() => setHoveredItem(null)}
                 >
