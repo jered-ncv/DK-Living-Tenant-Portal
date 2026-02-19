@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface RentRollRow {
   lease_id: string
@@ -100,8 +101,32 @@ export default function RentRollV2Page() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-white">
+        <div className="border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <Skeleton className="h-8 w-32" />
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-28" />
+              <Skeleton className="h-10 w-36" />
+            </div>
+          </div>
+          <div className="flex gap-6 border-b border-gray-200">
+            <Skeleton className="h-6 w-20 mb-3" />
+            <Skeleton className="h-6 w-32 mb-3" />
+          </div>
+        </div>
+        <div className="px-6 py-4">
+          <div className="flex gap-3 mb-4">
+            <Skeleton className="h-10 w-40" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map(i => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+        </div>
       </div>
     )
   }

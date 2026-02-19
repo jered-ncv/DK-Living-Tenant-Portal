@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface LeaseAction {
   id: string
@@ -139,9 +140,21 @@ export default function LeaseTimeline({ leaseId }: LeaseTimelineProps) {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Lease Timeline</h3>
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="flex justify-between items-center mb-4">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-8 w-24" />
+        </div>
+        <div className="space-y-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="relative pl-10">
+              <Skeleton className="absolute left-0 w-8 h-8 rounded-full" />
+              <div className="border rounded-lg p-3">
+                <Skeleton className="h-5 w-40 mb-2" />
+                <Skeleton className="h-4 w-full mb-1" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     )

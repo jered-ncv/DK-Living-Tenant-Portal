@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type RenewalStage = 'critical' | 'offer_due' | 'review_due' | 'no_action'
 
@@ -162,9 +163,23 @@ export default function RenewalAlertsWidget() {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-4 md:p-6">
-        <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Renewal Alerts</h2>
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="flex justify-between items-center mb-4">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-4 w-16" />
+        </div>
+        <div className="flex gap-4 mb-4">
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-8 w-24" />
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="border rounded-lg p-3">
+              <Skeleton className="h-5 w-3/4 mb-2" />
+              <Skeleton className="h-4 w-1/2 mb-2" />
+              <Skeleton className="h-6 w-20" />
+            </div>
+          ))}
         </div>
       </div>
     )
