@@ -20,7 +20,7 @@ export default function PMLayout({ children, profileName }: PMLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
 
-  const navigation = [
+  const navigation: NavigationItem[] = [
     { name: 'Dashboard', href: '/pm/dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
     { 
       name: 'Rentals', 
@@ -38,8 +38,6 @@ export default function PMLayout({ children, profileName }: PMLayoutProps) {
     { name: 'Communication', href: '/pm/communication', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
     { name: 'Reports', href: '/pm/reports', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
   ]
-
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
 
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + '/')
 
@@ -81,7 +79,6 @@ export default function PMLayout({ children, profileName }: PMLayoutProps) {
           bg-slate-800 text-white flex flex-col
           transition-transform duration-300 ease-in-out
           ${sidebarOpen ? 'mt-16 md:mt-0' : ''}
-          overflow-visible
         `}
       >
         {/* Logo - Desktop only */}
@@ -100,12 +97,7 @@ export default function PMLayout({ children, profileName }: PMLayoutProps) {
         {/* Navigation */}
         <nav className="flex-1 py-4 overflow-y-auto">
           {navigation.map((item) => (
-            <div 
-              key={item.name} 
-              className="relative"
-              onMouseEnter={() => item.subItems && setHoveredItem(item.name)}
-              onMouseLeave={() => setHoveredItem(null)}
-            >
+            <div key={item.name} className="group relative">
               {/* Main nav item */}
               <Link
                 href={item.href}
@@ -124,13 +116,9 @@ export default function PMLayout({ children, profileName }: PMLayoutProps) {
                 <span>{item.name}</span>
               </Link>
               
-              {/* Hover dropdown submenu */}
-              {item.subItems && hoveredItem === item.name && (
-                <div 
-                  className="absolute left-full top-0 ml-1 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[100]"
-                  onMouseEnter={() => setHoveredItem(item.name)}
-                  onMouseLeave={() => setHoveredItem(null)}
-                >
+              {/* Hover dropdown submenu - CSS based */}
+              {item.subItems && (
+                <div className="hidden group-hover:block absolute left-full top-0 ml-1 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[100]">
                   {item.subItems.map((subItem) => (
                     <Link
                       key={subItem.href}
