@@ -1,9 +1,7 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
+'use client'
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
 
 interface RentRollRow {
   lease_id: string
@@ -23,266 +21,233 @@ interface RentRollRow {
   prepayments: number
 }
 
-export default async function RentRollV2Page() {
-  const supabase = await createClient()
-  
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+export default function RentRollV2Page() {
+  const [rentRollData, setRentRollData] = useState<RentRollRow[]>([])
+  const [filteredData, setFilteredData] = useState<RentRollRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedProperty, setSelectedProperty] = useState<string>('all')
+  const [selectedStatus, setSelectedStatus] = useState<string>('active')
 
-  if (!user) {
-    redirect('/login')
+  useEffect(() => {
+    fetchRentRoll()
+  }, [])
+
+  useEffect(() => {
+    filterData()
+  }, [rentRollData, selectedProperty, selectedStatus])
+
+  const fetchRentRoll = async () => {
+    try {
+      const response = await fetch('/api/leases?view=rent_roll')
+      if (response.ok) {
+        const data = await response.json()
+        setRentRollData(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch rent roll:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Check if user has PM role
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, full_name')
-    .eq('id', user.id)
-    .single()
+  const filterData = () => {
+    let filtered = [...rentRollData]
 
-  if (!profile || !['pm', 'admin'].includes(profile.role)) {
-    redirect('/dashboard')
+    // Property filter
+    if (selectedProperty !== 'all') {
+      filtered = filtered.filter(row => row.property_address === selectedProperty)
+    }
+
+    // Status filter
+    if (selectedStatus === 'active') {
+      filtered = filtered.filter(row => row.days_remaining > 0)
+    } else if (selectedStatus === 'future') {
+      filtered = filtered.filter(row => new Date(row.lease_start) > new Date())
+    }
+
+    setFilteredData(filtered)
   }
 
-  // Fetch rent roll data from the view
-  const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rent_roll_view?select=*&order=property_address.asc,unit_number.asc`, {
-    headers: {
-      'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-    }
-  })
+  const properties = Array.from(new Set(rentRollData.map(row => row.property_address)))
+  const totalRent = filteredData.reduce((sum, row) => sum + row.monthly_rent, 0)
 
-  const rentRollData: RentRollRow[] = response.ok ? await response.json() : []
+  const getDaysLeftBadge = (days: number) => {
+    if (days <= 0) return null
+    if (days <= 20) return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">{days} DAYS</span>
+    if (days <= 60) return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-700">{days} DAYS</span>
+    return null
+  }
 
-  // Group by property
-  const propertiesMap = new Map<string, RentRollRow[]>()
-  rentRollData.forEach(row => {
-    const propKey = row.property_address
-    if (!propertiesMap.has(propKey)) {
-      propertiesMap.set(propKey, [])
-    }
-    propertiesMap.get(propKey)!.push(row)
-  })
-
-  // Calculate totals
-  const totalMonthlyRent = rentRollData.reduce((sum, row) => sum + row.monthly_rent, 0)
-  const totalDeposits = rentRollData.reduce((sum, row) => sum + (row.security_deposit || 0), 0)
-  const totalBalances = rentRollData.reduce((sum, row) => sum + row.balance_due, 0)
-  const totalPrepayments = rentRollData.reduce((sum, row) => sum + row.prepayments, 0)
-  const totalUnits = rentRollData.length
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <h1 className="text-2xl font-bold text-gray-900">Rent Roll (Live)</h1>
-            <nav className="flex flex-wrap gap-4 text-sm">
-              <Link href="/pm/dashboard" className="text-gray-600 hover:text-blue-600">Dashboard</Link>
-              <Link href="/pm/rentals/rent-roll-v2" className="text-blue-600 font-semibold">Rent Roll v2</Link>
-              <Link href="/pm/rent-roll" className="text-gray-600 hover:text-blue-600">Old Rent Roll</Link>
-              <Link href="/pm/rentals/properties" className="text-gray-600 hover:text-blue-600">Properties</Link>
-            </nav>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-xs font-medium text-gray-500 mb-1 uppercase">Active Leases</div>
-            <div className="text-2xl md:text-3xl font-bold text-gray-900">{totalUnits}</div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-xs font-medium text-gray-500 mb-1 uppercase">Monthly Rent</div>
-            <div className="text-2xl md:text-3xl font-bold text-green-600">${totalMonthlyRent.toLocaleString()}</div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-xs font-medium text-gray-500 mb-1 uppercase">Total Deposits</div>
-            <div className="text-2xl md:text-3xl font-bold text-blue-600">${totalDeposits.toLocaleString()}</div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-xs font-medium text-gray-500 mb-1 uppercase">Balance Due</div>
-            <div className="text-2xl md:text-3xl font-bold text-red-600">${totalBalances.toLocaleString()}</div>
-            <div className="text-xs text-gray-500 mt-1">Placeholder</div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-xs font-medium text-gray-500 mb-1 uppercase">Prepayments</div>
-            <div className="text-2xl md:text-3xl font-bold text-purple-600">${totalPrepayments.toLocaleString()}</div>
-            <div className="text-xs text-gray-500 mt-1">Placeholder</div>
+      <div className="border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-normal text-gray-900">Rent roll</h1>
+          <div className="flex gap-2">
+            <button className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700">
+              Add lease
+            </button>
+            <button className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded hover:bg-gray-200">
+              Renew lease
+            </button>
+            <button className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded hover:bg-gray-200">
+              Receive payment
+            </button>
+            <button className="px-3 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded hover:bg-gray-200">
+              •••
+            </button>
           </div>
         </div>
 
-        {/* Export Button */}
-        <div className="mb-6 flex justify-end">
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            Export to CSV
+        {/* Tabs */}
+        <div className="flex gap-6 border-b border-gray-200">
+          <button className="pb-3 text-sm font-medium text-gray-900 border-b-2 border-green-600">
+            Rent roll
+          </button>
+          <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+            Liability management
+          </button>
+        </div>
+      </div>
+
+      {/* Filters & Results */}
+      <div className="px-6 py-4">
+        {/* Filter Row */}
+        <div className="flex gap-3 mb-4">
+          {/* Property Filter */}
+          <select
+            value={selectedProperty}
+            onChange={(e) => setSelectedProperty(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded text-sm bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <option value="all">All Properties</option>
+            {properties.map(prop => (
+              <option key={prop} value={prop}>{prop}</option>
+            ))}
+          </select>
+
+          {/* Status Filter */}
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded text-sm bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <option value="active">Active</option>
+            <option value="future">Future</option>
+            <option value="all">All Statuses</option>
+          </select>
+
+          <button className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900">
+            Add filter option
           </button>
         </div>
 
-        {/* Rent Roll Table by Property */}
-        <div className="space-y-8">
-          {Array.from(propertiesMap.entries()).map(([propertyAddress, rows]) => {
-            const propTotal = rows.reduce((sum, r) => sum + r.monthly_rent, 0)
-            const propDeposits = rows.reduce((sum, r) => sum + (r.security_deposit || 0), 0)
-            const propBalances = rows.reduce((sum, r) => sum + r.balance_due, 0)
-            
-            return (
-              <div key={propertyAddress} className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="bg-gray-100 px-6 py-4 border-b">
-                  <h2 className="text-lg font-semibold text-gray-900">{rows[0].property_name}</h2>
-                  <p className="text-sm text-gray-600">{propertyAddress}</p>
-                </div>
-                
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Unit
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Tenant
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Contact
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Lease Start
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Lease End
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Days Left
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Rent
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Deposit
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Balance
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {rows.map((row) => (
-                        <tr key={row.lease_id} className="hover:bg-gray-50">
-                          <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            <Link 
-                              href={`/pm/leasing/lease-management/${row.lease_id}`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              {row.unit_number}
-                            </Link>
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {row.tenant_name}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-gray-600">
-                            {row.tenant_email && (
-                              <div>
-                                <div className="text-xs">{row.tenant_email}</div>
-                                {row.tenant_phone && <div className="text-xs">{row.tenant_phone}</div>}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {new Date(row.lease_start).toLocaleDateString()}
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {new Date(row.lease_end).toLocaleDateString()}
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm">
-                            <span className={`font-medium ${
-                              row.days_remaining < 30 ? 'text-red-600' :
-                              row.days_remaining < 60 ? 'text-orange-600' :
-                              'text-gray-600'
-                            }`}>
-                              {row.days_remaining}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
-                            ${row.monthly_rent.toLocaleString()}
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 text-right">
-                            ${(row.security_deposit || 0).toLocaleString()}
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                            <span className={row.balance_due > 0 ? 'text-red-600 font-semibold' : 'text-gray-400'}>
-                              ${row.balance_due.toLocaleString()}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                
-                {/* Property Summary */}
-                <div className="bg-gray-50 px-6 py-3 border-t grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Units: </span>
-                    <span className="font-semibold text-gray-900">{rows.length}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Rent: </span>
-                    <span className="font-semibold text-gray-900">${propTotal.toLocaleString()}/mo</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Deposits: </span>
-                    <span className="font-semibold text-gray-900">${propDeposits.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Balances: </span>
-                    <span className={`font-semibold ${propBalances > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                      ${propBalances.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+        {/* Match count and Export */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-sm text-gray-600">
+            {filteredData.length} {filteredData.length === 1 ? 'match' : 'matches'}
+          </div>
+          <button className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export
+          </button>
         </div>
 
-        {/* Grand Total */}
-        <div className="mt-8 bg-blue-50 border-2 border-blue-300 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Portfolio Totals</h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-            <div>
-              <div className="text-gray-600">Active Leases</div>
-              <div className="text-xl font-bold text-gray-900">{totalUnits}</div>
-            </div>
-            <div>
-              <div className="text-gray-600">Monthly Rent</div>
-              <div className="text-xl font-bold text-green-600">${totalMonthlyRent.toLocaleString()}</div>
-            </div>
-            <div>
-              <div className="text-gray-600">Total Deposits</div>
-              <div className="text-xl font-bold text-blue-600">${totalDeposits.toLocaleString()}</div>
-            </div>
-            <div>
-              <div className="text-gray-600">Balance Due</div>
-              <div className="text-xl font-bold text-red-600">${totalBalances.toLocaleString()}</div>
-            </div>
-            <div>
-              <div className="text-gray-600">Prepayments</div>
-              <div className="text-xl font-bold text-purple-600">${totalPrepayments.toLocaleString()}</div>
+        {/* Table */}
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <button className="flex items-center gap-1 hover:text-gray-700">
+                    LEASE
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  STATUS
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  TYPE
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  DAYS LEFT
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  RENT
+                </th>
+                <th className="w-10"></th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredData.map((row) => (
+                <tr key={row.lease_id} className="hover:bg-gray-50">
+                  <td className="px-4 py-4">
+                    <Link
+                      href={`/pm/leasing/lease-management/${row.lease_id}`}
+                      className="text-blue-600 hover:underline font-medium"
+                    >
+                      {row.property_name} - {row.unit_number} | {row.tenant_name}
+                    </Link>
+                    <div className="text-xs text-gray-500 mt-1">{row.lease_id.slice(0, 8)}</div>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-900">
+                    {row.days_remaining <= 30 && row.days_remaining > 0 ? (
+                      <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-700">
+                        MOVING OUT
+                      </span>
+                    ) : (
+                      'Active'
+                    )}
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-900">
+                    <div>Fixed</div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(row.lease_start).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })} - {new Date(row.lease_end).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-sm">
+                    {getDaysLeftBadge(row.days_remaining)}
+                  </td>
+                  <td className="px-4 py-4 text-sm font-semibold text-gray-900 text-right">
+                    ${row.monthly_rent.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-4 text-center">
+                    <button className="text-gray-400 hover:text-gray-600">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Summary */}
+        {filteredData.length > 0 && (
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Total Monthly Rent ({filteredData.length} leases)</span>
+              <span className="font-semibold text-gray-900">${totalRent.toLocaleString()}</span>
             </div>
           </div>
-        </div>
-      </main>
+        )}
+      </div>
     </div>
   )
 }
