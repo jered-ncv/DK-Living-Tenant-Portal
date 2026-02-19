@@ -3,14 +3,15 @@ import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('lease_actions')
     .select('*')
-    .eq('lease_id', params.id)
+    .eq('lease_id', id)
     .order('performed_at', { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -19,8 +20,9 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const supabase = await createClient();
   const body = await request.json();
 
@@ -34,7 +36,7 @@ export async function POST(
     .single();
 
   const { data: action, error: actionError } = await supabase.rpc('log_lease_action', {
-    p_lease_id: params.id,
+    p_lease_id: id,
     p_action_type: body.action_type,
     p_description: body.description || null,
     p_old_rent: body.old_rent || null,
@@ -83,7 +85,7 @@ export async function POST(
     await supabase
       .from('leases')
       .update(statusUpdates[body.action_type])
-      .eq('id', params.id);
+      .eq('id', id);
   }
 
   return NextResponse.json({ action_id: action }, { status: 201 });

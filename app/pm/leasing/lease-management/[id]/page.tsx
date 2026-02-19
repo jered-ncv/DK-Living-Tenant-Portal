@@ -7,12 +7,13 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 interface Props {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default async function LeaseDetailPage({ params }: Props) {
+  const { id } = await params;
   const supabase = await createClient()
   
   const {
@@ -50,7 +51,7 @@ export default async function LeaseDetailPage({ params }: Props) {
         )
       )
     `)
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (error || !lease) {

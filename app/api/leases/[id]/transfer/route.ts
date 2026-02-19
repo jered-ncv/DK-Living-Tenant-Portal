@@ -3,8 +3,9 @@ import { NextResponse } from 'next/server';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const supabase = await createClient();
   const body = await request.json();
 
@@ -25,7 +26,7 @@ export async function POST(
   }
 
   const { data: newLeaseId, error } = await supabase.rpc('process_transfer', {
-    p_old_lease_id: params.id,
+    p_old_lease_id: id,
     p_new_unit_id: body.new_unit_id,
     p_new_rent: body.new_rent,
     p_new_lease_start: body.new_lease_start,
@@ -44,7 +45,7 @@ export async function POST(
 
   return NextResponse.json({
     message: 'Transfer completed',
-    old_lease_id: params.id,
+    old_lease_id: id,
     new_lease: newLease,
   }, { status: 201 });
 }
