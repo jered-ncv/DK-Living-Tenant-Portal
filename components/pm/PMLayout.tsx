@@ -28,9 +28,8 @@ export default function PMLayout({ children, profileName }: PMLayoutProps) {
       icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
       subItems: [
         { name: 'Properties', href: '/pm/rentals/properties' },
+        { name: 'Rent roll', href: '/pm/rentals/rent-roll-v2' },
         { name: 'Tenants', href: '/pm/rentals/tenants' },
-        { name: 'Rent Roll', href: '/pm/rentals/rent-roll-v2' },
-        { name: 'Outstanding Balances', href: '/pm/rentals/outstanding-balances' },
       ]
     },
     { name: 'Leasing', href: '/pm/leasing/applicants', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
@@ -40,7 +39,7 @@ export default function PMLayout({ children, profileName }: PMLayoutProps) {
     { name: 'Reports', href: '/pm/reports', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
   ]
 
-  const [expandedItems, setExpandedItems] = useState<string[]>(['Rentals'])
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
 
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + '/')
 
@@ -100,76 +99,51 @@ export default function PMLayout({ children, profileName }: PMLayoutProps) {
         {/* Navigation */}
         <nav className="flex-1 py-4 overflow-y-auto">
           {navigation.map((item) => (
-            <div key={item.name}>
+            <div 
+              key={item.name} 
+              className="relative"
+              onMouseEnter={() => item.subItems && setHoveredItem(item.name)}
+              onMouseLeave={() => setHoveredItem(null)}
+            >
               {/* Main nav item */}
-              {item.subItems ? (
-                <button
-                  onClick={() => {
-                    setExpandedItems(prev => 
-                      prev.includes(item.name) 
-                        ? prev.filter(i => i !== item.name)
-                        : [...prev, item.name]
-                    )
-                  }}
-                  className={`
-                    flex items-center justify-between w-full gap-3 px-4 py-3 text-sm
-                    ${isActive(item.href) 
-                      ? 'bg-slate-700 text-white' 
-                      : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                    }
-                  `}
-                >
-                  <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-                    </svg>
-                    <span>{item.name}</span>
-                  </div>
-                  <svg 
-                    className={`w-4 h-4 transition-transform ${expandedItems.includes(item.name) ? 'rotate-180' : ''}`}
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-              ) : (
-                <Link
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`
-                    flex items-center gap-3 px-4 py-3 text-sm
-                    ${isActive(item.href) 
-                      ? 'bg-slate-700 text-white' 
-                      : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                    }
-                  `}
-                >
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-                  </svg>
-                  <span>{item.name}</span>
-                </Link>
-              )}
+              <Link
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={`
+                  flex items-center gap-3 px-4 py-3 text-sm
+                  ${isActive(item.href) 
+                    ? 'bg-slate-700 text-white' 
+                    : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                  }
+                `}
+              >
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                </svg>
+                <span>{item.name}</span>
+              </Link>
               
-              {/* Submenu items */}
-              {item.subItems && expandedItems.includes(item.name) && (
-                <div className="bg-slate-900">
+              {/* Hover dropdown submenu */}
+              {item.subItems && hoveredItem === item.name && (
+                <div 
+                  className="hidden md:block absolute left-full top-0 ml-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
+                  onMouseEnter={() => setHoveredItem(item.name)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                >
                   {item.subItems.map((subItem) => (
                     <Link
                       key={subItem.href}
                       href={subItem.href}
                       onClick={() => setSidebarOpen(false)}
                       className={`
-                        flex items-center gap-3 pl-12 pr-4 py-2 text-sm
+                        block px-4 py-2 text-sm
                         ${pathname === subItem.href
-                          ? 'bg-slate-700 text-white' 
-                          : 'text-slate-400 hover:bg-slate-700 hover:text-white'
+                          ? 'bg-gray-100 text-gray-900 font-medium' 
+                          : 'text-gray-700 hover:bg-gray-50'
                         }
                       `}
                     >
-                      <span>{subItem.name}</span>
+                      {subItem.name}
                     </Link>
                   ))}
                 </div>
