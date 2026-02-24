@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import PMLayout from '@/components/pm/PMLayout'
+import RenewalAlertsWidget from '@/components/pm/RenewalAlertsWidget'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -135,6 +136,9 @@ export default async function PMDashboardPage() {
             View all →
           </Link>
         </div>
+
+        {/* Renewal Alerts Widget */}
+        <RenewalAlertsWidget />
 
         {/* Rental Listings */}
         <div className="bg-white rounded-lg shadow p-4 md:p-6">

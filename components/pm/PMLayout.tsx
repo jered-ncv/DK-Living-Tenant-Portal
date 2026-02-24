@@ -9,13 +9,29 @@ interface PMLayoutProps {
   profileName?: string
 }
 
+interface NavigationItem {
+  name: string
+  href: string
+  icon: string
+  subItems?: { name: string; href: string }[]
+}
+
 export default function PMLayout({ children, profileName }: PMLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
 
-  const navigation = [
+  const navigation: NavigationItem[] = [
     { name: 'Dashboard', href: '/pm/dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-    { name: 'Rentals', href: '/pm/rentals/properties', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+    { 
+      name: 'Rentals', 
+      href: '/pm/rentals/properties', 
+      icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+      subItems: [
+        { name: 'Properties', href: '/pm/rentals/properties' },
+        { name: 'Rent roll', href: '/pm/rentals/rent-roll-v2' },
+        { name: 'Tenants', href: '/pm/rentals/tenants' },
+      ]
+    },
     { name: 'Leasing', href: '/pm/leasing/applicants', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
     { name: 'Accounting', href: '/pm/accounting', icon: 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z' },
     { name: 'Tasks', href: '/pm/tasks', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
@@ -81,23 +97,47 @@ export default function PMLayout({ children, profileName }: PMLayoutProps) {
         {/* Navigation */}
         <nav className="flex-1 py-4 overflow-y-auto">
           {navigation.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              onClick={() => setSidebarOpen(false)}
-              className={`
-                flex items-center gap-3 px-4 py-3 text-sm
-                ${isActive(item.href) 
-                  ? 'bg-slate-700 text-white' 
-                  : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                }
-              `}
-            >
-              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-              </svg>
-              <span>{item.name}</span>
-            </Link>
+            <div key={item.name} className="group relative">
+              {/* Main nav item */}
+              <Link
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={`
+                  flex items-center gap-3 px-4 py-3 text-sm
+                  ${isActive(item.href) 
+                    ? 'bg-slate-700 text-white' 
+                    : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                  }
+                `}
+              >
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                </svg>
+                <span>{item.name}</span>
+              </Link>
+              
+              {/* Hover dropdown submenu - CSS based */}
+              {item.subItems && (
+                <div className="hidden group-hover:block absolute left-full top-0 ml-1 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[100]">
+                  {item.subItems.map((subItem) => (
+                    <Link
+                      key={subItem.href}
+                      href={subItem.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={`
+                        block px-4 py-2 text-sm
+                        ${pathname === subItem.href
+                          ? 'bg-gray-100 text-gray-900 font-medium' 
+                          : 'text-gray-700 hover:bg-gray-50'
+                        }
+                      `}
+                    >
+                      {subItem.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
         </nav>
 
